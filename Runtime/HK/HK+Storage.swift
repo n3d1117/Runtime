@@ -7,7 +7,14 @@
 
 import Foundation
 
-class HealthKitStorage {
+protocol HealthKitStoring {
+    func cacheWorkouts(_ workouts: [RunWorkout])
+    func get(for id: UUID) -> RunWorkout?
+    func getAll() -> [RunWorkout]
+    func clear()
+}
+
+class HealthKitStorage: HealthKitStoring {
 
     static let shared = HealthKitStorage()
     private let key = "cachedRunWorkouts"

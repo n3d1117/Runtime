@@ -54,14 +54,22 @@ class ContentViewModel {
         didSet { sortAndFilter() }
     }
     
-    init() {
-        workouts = HealthKitStorage.shared.getAll()
+    private let healthKitManager: HealthKitManaging
+    private let healthKitStorage: HealthKitStoring
+    
+    init(
+        healthKitManager: HealthKitManaging = HealthKitManager.shared,
+        healthKitStorage: HealthKitStoring = HealthKitStorage.shared
+    ) {
+        self.healthKitManager = healthKitManager
+        self.healthKitStorage = healthKitStorage
+        workouts = healthKitStorage.getAll()
     }
     
     func fetchWorkouts() async {
         do {
-            try await HealthKitManager.shared.requestAuthorization()
-            workouts = try await HealthKitManager.shared.fetchRunWorkouts()
+            try await healthKitManager.requestAuthorization()
+            workouts = try await healthKitManager.fetchRunWorkouts()
         } catch {
             print(error)
         }
@@ -108,7 +116,7 @@ class ContentViewModel {
     }
     
     func clearCache() {
-        HealthKitStorage.shared.clear()
+        healthKitStorage.clear()
         workouts = []
     }
 }

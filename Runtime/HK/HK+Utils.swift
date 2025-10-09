@@ -11,6 +11,14 @@ extension HKObjectType {
     static func distanceWalkingRunningType() -> HKQuantityType {
         HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!
     }
+    
+    static func heartRateType() -> HKQuantityType {
+        HKObjectType.quantityType(forIdentifier: .heartRate)!
+    }
+    
+    static func activeEnergyBurnedType() -> HKQuantityType {
+        HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!
+    }
 }
 
 extension NSPredicate: @retroactive @unchecked Sendable {
@@ -48,6 +56,27 @@ extension HKHealthStore {
                     continuation.resume(returning: results)
                 } else {
                     continuation.resume(returning: [])
+                }
+            }
+            execute(query)
+        }
+    }
+    
+    func statistics(
+        quantityType: HKQuantityType,
+        predicate: NSPredicate?,
+        options: HKStatisticsOptions
+    ) async throws -> HKStatistics? {
+        try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: quantityType,
+                quantitySamplePredicate: predicate,
+                options: options
+            ) { _, statistics, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: statistics)
                 }
             }
             execute(query)
@@ -166,13 +195,24 @@ extension HKWorkout {
 // Glue
 
 extension RunWorkout {
-    init?(from workout: HKWorkout, splits: [HKWorkoutEvent]) {
+    init?(
+        from workout: HKWorkout,
+        splits: [HKWorkoutEvent],
+        averageHeartRate: Double?,
+        totalEnergyBurned: Measurement<UnitEnergy>?
+    ) {
         guard workout.workoutActivityType == .running else {
             return nil
         }
+        
+        let splitModels = splits.compactMap { RunWorkout.Split(from: $0) }
         self.id = workout.uuid
         self.dateInterval = DateInterval(start: workout.startDate, end: workout.endDate)
-        self.splits = splits.compactMap { RunWorkout.Split(from: $0) }
+        self.averageHeartRate = averageHeartRate
+        self.totalEnergyBurned = totalEnergyBurned
+        self.averagePace = RunWorkout.estimateAveragePace(from: splitModels)
+            ?? RunWorkout.estimateAveragePace(from: workout)
+        self.splits = splitModels
     }
 }
 
@@ -186,5 +226,31 @@ extension RunWorkout.Split {
         self.dateInterval = workoutEvent.dateInterval
         self.distance = Measurement(value: distance, unit: .meters)
         self.duration = .seconds(duration)
+    }
+}
+
+private extension RunWorkout {
+    static func estimateAveragePace(from splits: [Split]) -> Duration? {
+        let totalDistanceMeters = splits
+            .map { $0.distance.converted(to: .meters).value }
+            .reduce(0, +)
+        let totalSeconds = splits
+            .map(\.duration.inSeconds)
+            .reduce(0, +)
+        
+        guard totalDistanceMeters > 0, totalSeconds > 0 else { return nil }
+        let secondsPerMeter = Double(totalSeconds) / totalDistanceMeters
+        return .seconds(secondsPerMeter * 1000)
+    }
+    
+    static func estimateAveragePace(from workout: HKWorkout) -> Duration? {
+        guard let totalDistanceQuantity = workout.totalDistance else {
+            return nil
+        }
+        let totalMeters = totalDistanceQuantity.doubleValue(for: .meter())
+        guard totalMeters > 0 else { return nil }
+        let secondsPerMeter = workout.duration / totalMeters
+        guard secondsPerMeter.isFinite else { return nil }
+        return .seconds(secondsPerMeter * 1000)
     }
 }

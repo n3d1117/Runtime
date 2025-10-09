@@ -17,11 +17,20 @@ struct RunWorkout: Identifiable, Hashable, Codable {
     
     let id: UUID
     let dateInterval: DateInterval
+    let averagePace: Duration?
+    let averageHeartRate: Double?
+    let totalEnergyBurned: Measurement<UnitEnergy>?
     var totalDistance: Measurement<UnitLength> {
         splits.reduce(.init(value: 0, unit: .meters)) { $0 + $1.distance }
     }
     var totalDuration: Duration {
         .seconds(splits.reduce(.zero) { $0 + $1.duration.inSeconds })
+    }
+    var totalKilocalories: Double? {
+        totalEnergyBurned?.converted(to: .kilocalories).value
+    }
+    var hasMetrics: Bool {
+        averagePace != nil || averageHeartRate != nil || totalKilocalories != nil
     }
     var splits: [Split]
 }
@@ -30,6 +39,9 @@ extension RunWorkout {
     static let mock: Self = .init(
         id: UUID(),
         dateInterval: DateInterval(start: Date(), duration: 1800),
+        averagePace: .seconds(270),
+        averageHeartRate: 152,
+        totalEnergyBurned: Measurement(value: 480, unit: .kilocalories),
         splits: [
             Split(
                 dateInterval: DateInterval(start: Date(), duration: 343),

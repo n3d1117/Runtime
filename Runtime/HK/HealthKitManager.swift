@@ -7,18 +7,25 @@
 
 import HealthKit
 
-actor HealthKitManager {
+protocol HealthKitManaging {
+    func requestAuthorization() async throws
+    func fetchRunWorkouts() async throws -> [RunWorkout]
+}
+
+actor HealthKitManager: HealthKitManaging {
     
     enum HealthKitError: Error {
         case unavailable
     }
     
-    static let shared = HealthKitManager()
+    static let shared = HealthKitManager(storage: HealthKitStorage.shared)
     
     private let store: HKHealthStore
+    private let storage: HealthKitStoring
     
-    private init() {
-        store = HKHealthStore()
+    init(storage: HealthKitStoring) {
+        self.store = HKHealthStore()
+        self.storage = storage
     }
 
     func requestAuthorization() async throws {
@@ -27,7 +34,9 @@ actor HealthKitManager {
         }
         try await store.requestAuthorization(toShare: [], read: [
             .workoutType(),
-            .distanceWalkingRunningType()
+            .distanceWalkingRunningType(),
+            .heartRateType(),
+            .activeEnergyBurnedType()
         ])
     }
     
@@ -38,36 +47,62 @@ actor HealthKitManager {
         )
         
         let uncachedWorkouts = runWorkouts
-            .filter { HealthKitStorage.shared.get(for: $0.uuid) == nil }
+            .filter { storage.get(for: $0.uuid) == nil }
         
         let cachedWorkouts = runWorkouts
-            .compactMap { HealthKitStorage.shared.get(for: $0.uuid) }
+            .compactMap { storage.get(for: $0.uuid) }
         
         var finalWorkouts = cachedWorkouts
         
-        try await withThrowingTaskGroup(of: (HKWorkout, [HKWorkoutEvent]).self) { group in
+        try await withThrowingTaskGroup(of: (HKWorkout, [HKWorkoutEvent], Double?, Measurement<UnitEnergy>?).self) { group in
             for workout in uncachedWorkouts {
                 group.addTask { [store] in
-                    let samples: [HKQuantitySample] = try await store.query(
+                    async let samples: [HKQuantitySample] = store.query(
                         type: .distanceWalkingRunningType(),
                         predicate: .from(workout)
                     )
-                    return (workout, workout.splits(from: samples))
+                    async let heartRateStats: HKStatistics? = store.statistics(
+                        quantityType: .heartRateType(),
+                        predicate: .from(workout),
+                        options: .discreteAverage
+                    )
+                    async let energyStats: HKStatistics? = store.statistics(
+                        quantityType: .activeEnergyBurnedType(),
+                        predicate: .from(workout),
+                        options: .cumulativeSum
+                    )
+                    let splits = workout.splits(from: try await samples)
+                    let heartRate = try await heartRateStats?
+                        .averageQuantity()?
+                        .doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+                    let energyMeasurement = try await energyStats?
+                        .sumQuantity()
+                        .map {
+                            Measurement(
+                                value: $0.doubleValue(for: .kilocalorie()),
+                                unit: UnitEnergy.kilocalories
+                            )
+                        }
+                    return (workout, splits, heartRate, energyMeasurement)
                 }
             }
             
-            for try await (workout, splits) in group {
-                if let workout = RunWorkout(from: workout, splits: splits) {
+            for try await (workout, splits, heartRate, energy) in group {
+                if let workout = RunWorkout(
+                    from: workout,
+                    splits: splits,
+                    averageHeartRate: heartRate,
+                    totalEnergyBurned: energy
+                ) {
                     finalWorkouts.append(workout)
                 }
             }
         }
         
-        // not needed maybe?
         finalWorkouts = finalWorkouts
             .sorted { $0.dateInterval.start > $1.dateInterval.start }
         
-        HealthKitStorage.shared.cacheWorkouts(finalWorkouts)
+        storage.cacheWorkouts(finalWorkouts)
         
         return finalWorkouts
     }
