@@ -13,6 +13,12 @@ extension Duration {
         let milli = Double(v.seconds) * 1000 + Double(v.attoseconds) * 1e-15
         return Int((milli / 1000.0).rounded())
     }
+    var paceString: String {
+        let seconds = Double(inSeconds)
+        let minutes = Int(seconds / 60)
+        let remainingSeconds = Int(seconds) % 60
+        return String(format: "%d'%02d\"", minutes, remainingSeconds)
+    }
 }
 
 extension View {

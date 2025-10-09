@@ -14,6 +14,40 @@ struct RunWorkoutView: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             VStack(spacing: 8) {
+                if workout.hasMetrics {
+                    HStack(spacing: 10) {
+                        if let pace = workout.averagePace {
+                            WorkoutMetricPill(
+                                icon: "figure.run",
+                                label: "Avg Pace",
+                                value: "\(pace.paceString)/km",
+                                tint: .orange
+                            )
+                        }
+                        if let heartRate = workout.averageHeartRate {
+                            WorkoutMetricPill(
+                                icon: "heart.fill",
+                                label: "Avg HR",
+                                value: "\(Int(heartRate.rounded()))bpm",
+                                tint: .red
+                            )
+                        }
+                        if let kilocalories = workout.totalKilocalories {
+                            WorkoutMetricPill(
+                                icon: "flame.fill",
+                                label: "Energy",
+                                value: "\(Int(kilocalories.rounded()))kcal",
+                                tint: .purple
+                            )
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentTransition(.numericText())
+                    
+                    Divider()
+                        .padding(.vertical, 3)
+                }
+                
                 HStack(alignment: .lastTextBaseline) {
                     Text("#")
                         .frame(minWidth: 40, alignment: .leading)

@@ -33,5 +33,6 @@ struct RunWorkoutHeaderView: View {
                 Text("🥉")
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
