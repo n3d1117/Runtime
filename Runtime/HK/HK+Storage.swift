@@ -14,35 +14,60 @@ protocol HealthKitStoring {
     func clear()
 }
 
-class HealthKitStorage: HealthKitStoring {
+final class HealthKitStorage: HealthKitStoring {
 
     static let shared = HealthKitStorage()
+
+    private let defaults: UserDefaults
     private let key = "cachedRunWorkouts"
-    
-    private init() { }
-    
+    private let queue = DispatchQueue(label: "com.ned.runtime.healthkitstorage", attributes: .concurrent)
+
+    private var cachedWorkouts: [RunWorkout]
+    private var cachedWorkoutsByID: [UUID: RunWorkout]
+
+    private init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        if
+            let data = defaults.data(forKey: key),
+            let decoded = try? JSONDecoder().decode([RunWorkout].self, from: data)
+        {
+            self.cachedWorkouts = decoded
+            self.cachedWorkoutsByID = Dictionary(uniqueKeysWithValues: decoded.map { ($0.id, $0) })
+        } else {
+            self.cachedWorkouts = []
+            self.cachedWorkoutsByID = [:]
+        }
+    }
+
     func cacheWorkouts(_ workouts: [RunWorkout]) {
-        UserDefaults.standard.set(
-            try? JSONEncoder().encode(workouts),
-            forKey: key
-        )
+        queue.sync(flags: .barrier) {
+            cachedWorkouts = workouts
+            cachedWorkoutsByID = Dictionary(uniqueKeysWithValues: workouts.map { ($0.id, $0) })
+            persist(workouts)
+        }
     }
-    
+
     func get(for id: UUID) -> RunWorkout? {
-        guard let data = UserDefaults.standard.data(forKey: key) else {
-            return nil
+        queue.sync {
+            cachedWorkoutsByID[id]
         }
-        return (try? JSONDecoder().decode([RunWorkout].self, from: data))?.first { $0.id == id }
     }
-    
+
     func getAll() -> [RunWorkout] {
-        guard let data = UserDefaults.standard.data(forKey: key) else {
-            return []
+        queue.sync {
+            cachedWorkouts
         }
-        return (try? JSONDecoder().decode([RunWorkout].self, from: data)) ?? []
     }
-    
+
     func clear() {
-        UserDefaults.standard.removeObject(forKey: key)
+        queue.sync(flags: .barrier) {
+            cachedWorkouts = []
+            cachedWorkoutsByID = [:]
+            defaults.removeObject(forKey: key)
+        }
+    }
+
+    private func persist(_ workouts: [RunWorkout]) {
+        defaults.set(try? JSONEncoder().encode(workouts), forKey: key)
     }
 }
