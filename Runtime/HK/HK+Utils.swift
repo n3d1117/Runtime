@@ -198,6 +198,7 @@ extension RunWorkout {
     init?(
         from workout: HKWorkout,
         splits: [HKWorkoutEvent],
+        heartRateSamples: [HKQuantitySample],
         averageHeartRate: Double?,
         totalEnergyBurned: Measurement<UnitEnergy>?
     ) {
@@ -205,7 +206,9 @@ extension RunWorkout {
             return nil
         }
         
-        let splitModels = splits.compactMap { RunWorkout.Split(from: $0) }
+        let splitModels = splits.compactMap {
+            RunWorkout.Split(from: $0, heartRateSamples: heartRateSamples)
+        }
         self.id = workout.uuid
         self.dateInterval = DateInterval(start: workout.startDate, end: workout.endDate)
         self.averageHeartRate = averageHeartRate
@@ -217,7 +220,7 @@ extension RunWorkout {
 }
 
 extension RunWorkout.Split {
-    init?(from workoutEvent: HKWorkoutEvent) {
+    init?(from workoutEvent: HKWorkoutEvent, heartRateSamples: [HKQuantitySample]) {
         guard workoutEvent.type == .segment,
               let distance = workoutEvent.metadata?["distance"] as? Double,
               let duration = workoutEvent.metadata?["duration"] as? TimeInterval else {
@@ -226,6 +229,10 @@ extension RunWorkout.Split {
         self.dateInterval = workoutEvent.dateInterval
         self.distance = Measurement(value: distance, unit: .meters)
         self.duration = .seconds(duration)
+        self.averageHeartRate = RunWorkout.Split.averageHeartRate(
+            in: workoutEvent.dateInterval,
+            samples: heartRateSamples
+        )
     }
 }
 
@@ -252,5 +259,30 @@ private extension RunWorkout {
         let secondsPerMeter = workout.duration / totalMeters
         guard secondsPerMeter.isFinite else { return nil }
         return .seconds(secondsPerMeter * 1000)
+    }
+}
+
+private extension RunWorkout.Split {
+    static func averageHeartRate(
+        in interval: DateInterval,
+        samples: [HKQuantitySample]
+    ) -> Double? {
+        var sumHeartRate = 0.0
+
+        var sampleCount = 0
+
+        for sample in samples {
+            if sample.endDate < interval.start || sample.startDate > interval.end {
+                continue
+            }
+            let bpm = sample.quantity.doubleValue(
+                for: HKUnit.count().unitDivided(by: .minute())
+            )
+            sumHeartRate += bpm
+            sampleCount += 1
+        }
+
+        guard sampleCount > 0 else { return nil }
+        return sumHeartRate / Double(sampleCount)
     }
 }

@@ -20,7 +20,7 @@ struct WorkoutMiniChartView: View {
                     y: .value("Duration", split.duration.inSeconds)
                 )
                 .interpolationMethod(.catmullRom)
-                .foregroundStyle(.teal.secondary)
+                .foregroundStyle(.red.secondary)
             }
         }
         .chartYScale(domain: [

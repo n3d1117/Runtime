@@ -54,11 +54,23 @@ actor HealthKitManager: HealthKitManaging {
         
         var finalWorkouts = cachedWorkouts
         
-        try await withThrowingTaskGroup(of: (HKWorkout, [HKWorkoutEvent], Double?, Measurement<UnitEnergy>?).self) { group in
+        try await withThrowingTaskGroup(
+            of: (
+                HKWorkout,
+                [HKWorkoutEvent],
+                [HKQuantitySample],
+                Double?,
+                Measurement<UnitEnergy>?
+            ).self
+        ) { group in
             for workout in uncachedWorkouts {
                 group.addTask { [store] in
                     async let samples: [HKQuantitySample] = store.query(
                         type: .distanceWalkingRunningType(),
+                        predicate: .from(workout)
+                    )
+                    async let heartRateSamples: [HKQuantitySample] = store.query(
+                        type: .heartRateType(),
                         predicate: .from(workout)
                     )
                     async let heartRateStats: HKStatistics? = store.statistics(
@@ -72,6 +84,7 @@ actor HealthKitManager: HealthKitManaging {
                         options: .cumulativeSum
                     )
                     let splits = workout.splits(from: try await samples)
+                    let heartRateSamplesValue = try await heartRateSamples
                     let heartRate = try await heartRateStats?
                         .averageQuantity()?
                         .doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
@@ -83,14 +96,15 @@ actor HealthKitManager: HealthKitManaging {
                                 unit: UnitEnergy.kilocalories
                             )
                         }
-                    return (workout, splits, heartRate, energyMeasurement)
+                    return (workout, splits, heartRateSamplesValue, heartRate, energyMeasurement)
                 }
             }
-            
-            for try await (workout, splits, heartRate, energy) in group {
+
+            for try await (workout, splits, heartRateSamples, heartRate, energy) in group {
                 if let workout = RunWorkout(
                     from: workout,
                     splits: splits,
+                    heartRateSamples: heartRateSamples,
                     averageHeartRate: heartRate,
                     totalEnergyBurned: energy
                 ) {

@@ -48,8 +48,6 @@ struct RunWorkoutView: View {
                         .padding(.vertical, 3)
                 }
                 
-                let averageHeartRateText = workout.averageHeartRate.map { "\(Int($0.rounded()))bpm" } ?? "—"
-
                 HStack(alignment: .lastTextBaseline) {
                     Text("#")
                         .frame(minWidth: 40, alignment: .leading)
@@ -60,7 +58,7 @@ struct RunWorkoutView: View {
                     Text("Distance")
                         .frame(minWidth: 80, alignment: .leading)
                     
-                    Text("Avg Heart Rate")
+                    Text("Avg HR")
                         .frame(minWidth: 80, alignment: .leading)
                 }
                 .foregroundStyle(.secondary)
@@ -79,11 +77,12 @@ struct RunWorkoutView: View {
                             .frame(minWidth: 70, alignment: .leading)
                         
                         Text(split.distance.formatted())
-                            .foregroundStyle(.green)
+                            .foregroundStyle(.teal)
                             .frame(minWidth: 80, alignment: .leading)
                         
-                        Text(averageHeartRateText)
-                            .foregroundStyle(.red)
+                        let perSplitHeartRate = split.averageHeartRate.map { "\(Int($0.rounded()))bpm" } ?? "—"
+                        Text(perSplitHeartRate)
+                            .foregroundStyle(.green)
                             .frame(minWidth: 80, alignment: .leading)
                     }
                     .font(.system(.title3, design: .rounded).weight(.semibold).lowercaseSmallCaps())
@@ -112,7 +111,7 @@ struct RunWorkoutView: View {
                             )
                         )
                     )
-                    .foregroundStyle(.green)
+                    .foregroundStyle(.teal)
                     .frame(minWidth: 80, alignment: .leading)
                     
                     WorkoutMiniChartView(workout: workout)

@@ -20,14 +20,14 @@ struct RunWorkoutsView: View {
                         VStack {
                             RunWorkoutView(workout: workout)
                                 .padding(.horizontal)
-                                .padding(.bottom, 7)
+                                .padding(.bottom, 10)
                             
                             if isFirstWorkoutInMonth(workout), workout != workouts.last, sortOption == .recent {
                                 Wave(strength: 4, frequency: 45)
                                     .stroke(.secondary, lineWidth: 0.5)
                                     .frame(maxWidth: .infinity, maxHeight: 30)
-                                    .padding(.top)
-                                    .padding(.bottom, 5)
+                                    .padding(.top, 5)
+                                    .padding(.bottom)
                             }
                         }
                         .padding(.bottom, 10)
@@ -42,7 +42,7 @@ struct RunWorkoutsView: View {
                             .padding(.vertical, 10)
                             .glassEffect(.regular.interactive(), in: .capsule)
                             .padding(.horizontal, 8)
-                            .padding(.bottom, -8)
+                            .padding(.bottom, 6)
                     }
                 }
             }

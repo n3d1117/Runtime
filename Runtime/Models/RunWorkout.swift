@@ -13,6 +13,7 @@ struct RunWorkout: Identifiable, Hashable, Codable {
         let dateInterval: DateInterval
         let distance: Measurement<UnitLength>
         let duration: Duration
+        let averageHeartRate: Double?
     }
     
     let id: UUID
@@ -46,27 +47,32 @@ extension RunWorkout {
             Split(
                 dateInterval: DateInterval(start: Date(), duration: 343),
                 distance: Measurement(value: 1000, unit: .meters),
-                duration: Duration.seconds(343)
+                duration: Duration.seconds(343),
+                averageHeartRate: 150
             ),
             Split(
                 dateInterval: DateInterval(start: Date().addingTimeInterval(343), duration: 348),
                 distance: Measurement(value: 1000, unit: .meters),
-                duration: Duration.seconds(348)
+                duration: Duration.seconds(348),
+                averageHeartRate: 150
             ),
             Split(
                 dateInterval: DateInterval(start: Date().addingTimeInterval(348), duration: 375),
                 distance: Measurement(value: 1000, unit: .meters),
-                duration: Duration.seconds(375)
+                duration: Duration.seconds(375),
+                averageHeartRate: 150
             ),
             Split(
                 dateInterval: DateInterval(start: Date().addingTimeInterval(375), duration: 372),
                 distance: Measurement(value: 1000, unit: .meters),
-                duration: Duration.seconds(372)
+                duration: Duration.seconds(372),
+                averageHeartRate: 150
             ),
             Split(
                 dateInterval: DateInterval(start: Date().addingTimeInterval(372), duration: 361),
                 distance: Measurement(value: 1000, unit: .meters),
-                duration: Duration.seconds(361)
+                duration: Duration.seconds(361),
+                averageHeartRate: 150
             )
         ]
     )
@@ -122,13 +128,14 @@ extension RunWorkout {
     private static func mockSplits(start: Date, durations: [TimeInterval]) -> [Split] {
         var currentStart = start
         var splits: [Split] = []
-        for duration in durations {
+        for (index, duration) in durations.enumerated() {
             let interval = DateInterval(start: currentStart, duration: duration)
             splits.append(
                 .init(
                     dateInterval: interval,
                     distance: .init(value: 1000, unit: UnitLength.meters),
-                    duration: .seconds(duration)
+                    duration: .seconds(duration),
+                    averageHeartRate: 150 + Double(index)
                 )
             )
             currentStart = interval.end
