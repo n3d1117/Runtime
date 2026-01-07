@@ -63,10 +63,19 @@ class ContentViewModel {
     ) {
         self.healthKitManager = healthKitManager
         self.healthKitStorage = healthKitStorage
+        #if targetEnvironment(simulator)
+        workouts = RunWorkout.mockShowWorkouts
+        #else
         workouts = healthKitStorage.getAll()
+        #endif
     }
     
     func fetchWorkouts() async {
+        #if targetEnvironment(simulator)
+        workouts = RunWorkout.mockShowWorkouts
+        return
+        #endif
+
         do {
             try await healthKitManager.requestAuthorization()
             workouts = try await healthKitManager.fetchRunWorkouts()

@@ -48,6 +48,8 @@ struct RunWorkoutView: View {
                         .padding(.vertical, 3)
                 }
                 
+                let averageHeartRateText = workout.averageHeartRate.map { "\(Int($0.rounded()))bpm" } ?? "—"
+
                 HStack(alignment: .lastTextBaseline) {
                     Text("#")
                         .frame(minWidth: 40, alignment: .leading)
@@ -58,7 +60,7 @@ struct RunWorkoutView: View {
                     Text("Distance")
                         .frame(minWidth: 80, alignment: .leading)
                     
-                    Text("Interval")
+                    Text("Avg Heart Rate")
                         .frame(minWidth: 80, alignment: .leading)
                 }
                 .foregroundStyle(.secondary)
@@ -77,11 +79,11 @@ struct RunWorkoutView: View {
                             .frame(minWidth: 70, alignment: .leading)
                         
                         Text(split.distance.formatted())
-                            .foregroundStyle(.teal)
+                            .foregroundStyle(.green)
                             .frame(minWidth: 80, alignment: .leading)
                         
-                        Text(split.dateInterval)
-                            .foregroundStyle(.green)
+                        Text(averageHeartRateText)
+                            .foregroundStyle(.red)
                             .frame(minWidth: 80, alignment: .leading)
                     }
                     .font(.system(.title3, design: .rounded).weight(.semibold).lowercaseSmallCaps())
@@ -110,7 +112,7 @@ struct RunWorkoutView: View {
                             )
                         )
                     )
-                    .foregroundStyle(.teal)
+                    .foregroundStyle(.green)
                     .frame(minWidth: 80, alignment: .leading)
                     
                     WorkoutMiniChartView(workout: workout)
@@ -126,7 +128,7 @@ struct RunWorkoutView: View {
         .fontDesign(.rounded)
         .padding(.vertical)
         .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
     }
 }
 

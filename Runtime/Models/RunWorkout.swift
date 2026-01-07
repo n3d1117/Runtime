@@ -71,3 +71,68 @@ extension RunWorkout {
         ]
     )
 }
+
+extension RunWorkout {
+    static var mockShowWorkouts: [RunWorkout] {
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        return [
+            mockWorkout(
+                start: startOfDay.addingTimeInterval(-3600 * 4),
+                paceSeconds: 270,
+                heartRate: 158,
+                energy: 520,
+                splitDurations: [320, 315, 310, 305, 300]
+            ),
+            mockWorkout(
+                start: startOfDay.addingTimeInterval(-3600 * 10),
+                paceSeconds: 258,
+                heartRate: 165,
+                energy: 540,
+                splitDurations: [310, 305, 300, 295, 290]
+            ),
+            mockWorkout(
+                start: startOfDay.addingTimeInterval(-86400 - 3600 * 2),
+                paceSeconds: 292,
+                heartRate: 149,
+                energy: 480,
+                splitDurations: [335, 330, 328, 325, 320]
+            )
+        ]
+    }
+
+    private static func mockWorkout(
+        start: Date,
+        paceSeconds: TimeInterval,
+        heartRate: Double,
+        energy: Double,
+        splitDurations: [TimeInterval]
+    ) -> RunWorkout {
+        let splits = mockSplits(start: start, durations: splitDurations)
+        let totalDuration = splitDurations.reduce(0, +)
+        return .init(
+            id: UUID(),
+            dateInterval: DateInterval(start: start, duration: totalDuration),
+            averagePace: .seconds(paceSeconds),
+            averageHeartRate: heartRate,
+            totalEnergyBurned: Measurement(value: energy, unit: UnitEnergy.kilocalories),
+            splits: splits
+        )
+    }
+
+    private static func mockSplits(start: Date, durations: [TimeInterval]) -> [Split] {
+        var currentStart = start
+        var splits: [Split] = []
+        for duration in durations {
+            let interval = DateInterval(start: currentStart, duration: duration)
+            splits.append(
+                .init(
+                    dateInterval: interval,
+                    distance: .init(value: 1000, unit: UnitLength.meters),
+                    duration: .seconds(duration)
+                )
+            )
+            currentStart = interval.end
+        }
+        return splits
+    }
+}

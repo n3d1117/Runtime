@@ -19,7 +19,7 @@ struct ContentView: View {
                         .refreshable {
                             await viewModel.fetchWorkouts()
                         }
-                        .safeAreaInset(edge: .top, spacing: .zero) {
+                        .safeAreaBar(edge: .top, spacing: .zero) {
                             filtersView
                         }
                 } else {
@@ -35,7 +35,6 @@ struct ContentView: View {
                         .font(.headline)
                 }
             }
-            .toolbarBackground(.hidden, for: .navigationBar)
             .animation(.default, value: viewModel.filteredWorkouts)
         }
     }
@@ -59,8 +58,10 @@ struct ContentView: View {
                                 .offset(y: 1)
                         }
                         .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
                     }
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 7)
+                    .glassEffect(.regular.interactive(), in: .capsule)
                     
                     Menu {
                         ForEach(ContentViewModel.FiterOption.allCases, id: \.self) { option in
@@ -76,17 +77,23 @@ struct ContentView: View {
                         }
                     } label: {
                         HStack(spacing: 5) {
-                            Text("Filters") + (viewModel.filterOptions.isEmpty ? Text("") : (
-                                Text(" ") + Text(Image(systemName: "\(viewModel.filterOptions.count).circle.fill"))
-                            ))
+                            HStack(spacing: 0) {
+                                Text("Filters")
+                                if !viewModel.filterOptions.isEmpty {
+                                    Text(" ")
+                                    Image(systemName: "\(viewModel.filterOptions.count).circle.fill")
+                                }
+                            }
                             
                             Image(systemName: "chevron.down")
                                 .imageScale(.small)
                                 .offset(y: 1)
                         }
                         .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
                     }
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 7)
+                    .glassEffect(.regular.interactive(), in: .capsule)
                     
                     Button("Reload") {
                         Task {
@@ -94,19 +101,14 @@ struct ContentView: View {
                             await viewModel.fetchWorkouts()
                         }
                     }
+                    .buttonStyle(.glass)
                 }
                 .padding(.horizontal)
                 .padding(.top, 3)
-                .padding(.bottom, 10)
+                .padding(.bottom, 5)
                 .foregroundStyle(.primary)
-                .tint(.secondary)
-                .buttonStyle(.bordered)
             }
             .scrollIndicators(.hidden)
-            .background(.regularMaterial)
-            
-            Divider()
-                .overlay(Color(UIColor.opaqueSeparator))
         }
     }
 }

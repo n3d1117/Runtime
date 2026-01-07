@@ -16,12 +16,14 @@ struct RunWorkoutHeaderView: View {
     
     var body: some View {
         HStack {
-            Text(workout.dateInterval.start, style: .date)
-                .font(.title2)
-                .fontWeight(.medium)
-            + Text("  ")
-            + Text(workout.dateInterval)
-                .foregroundColor(.secondary)
+            HStack(spacing: 0) {
+                Text(workout.dateInterval.start, style: .date)
+                    .font(.title2)
+                    .fontWeight(.medium)
+                Text("  ")
+                Text(workout.dateInterval)
+                    .foregroundColor(.secondary)
+            }
             
             Spacer()
             
