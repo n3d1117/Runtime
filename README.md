@@ -11,7 +11,7 @@ Personal SwiftUI toy project used to experiment with:
 - iOS 26 design language (Liquid Glass)
 
 ## Screenshot
-<img src="https://github.com/user-attachments/assets/d915d4f6-94f8-4503-9e9b-1543a5398a5a" width=400>
+<img src="https://github.com/user-attachments/assets/8faa2c43-4765-4097-9852-588da9923283" width=350>
 
 ## How It Works
 `HealthKitManager` asks for read-only permissions, pulls running workouts, and rebuilds splits (km) while keeping pause time out of the numbers for maximum accuracy. The results are cached by `HealthKitStorage`, which keeps the latest snapshot in `UserDefaults`.
