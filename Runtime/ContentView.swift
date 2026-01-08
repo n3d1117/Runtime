@@ -15,13 +15,16 @@ struct ContentView: View {
         NavigationStack {
             ZStack {
                 if !viewModel.filteredWorkouts.isEmpty {
-                    RunWorkoutsView(workouts: viewModel.filteredWorkouts, sortOption: viewModel.sortOption)
-                        .refreshable {
-                            await viewModel.fetchWorkouts()
-                        }
-                        .safeAreaBar(edge: .top, spacing: .zero) {
-                            filtersView
-                        }
+                    RunWorkoutsView(
+                        workouts: viewModel.filteredWorkouts,
+                        sortOption: viewModel.sortOption,
+                        insightsText: viewModel.insightsText,
+                        isGeneratingInsights: viewModel.isGeneratingInsights,
+                        shouldShowInsightsCard: viewModel.shouldShowInsightsCard
+                    )
+                    .safeAreaBar(edge: .top, spacing: .zero) {
+                        filtersView
+                    }
                 } else {
                     ProgressView("Loading...")
                 }

@@ -11,10 +11,18 @@ struct RunWorkoutsView: View {
     
     let workouts: [RunWorkout]
     let sortOption: ContentViewModel.SortOption
+    let insightsText: String?
+    let isGeneratingInsights: Bool
+    let shouldShowInsightsCard: Bool
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: .zero, pinnedViews: [.sectionHeaders]) {
+                if shouldShowInsightsCard, isGeneratingInsights || insightsText != nil {
+                    InsightsCardView(text: insightsText ?? "", isGenerating: isGeneratingInsights)
+                        .padding(.horizontal)
+                        .padding(.bottom, 12)
+                }
                 ForEach(workouts) { workout in
                     Section {
                         VStack {

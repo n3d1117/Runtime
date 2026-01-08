@@ -7,6 +7,7 @@
 
 import Observation
 
+@MainActor
 @Observable
 class ContentViewModel {
     
@@ -56,18 +57,16 @@ class ContentViewModel {
     
     private let healthKitManager: HealthKitManaging
     private let healthKitStorage: HealthKitStoring
+    private let insightsEngine: InsightsEngine
     
     init(
         healthKitManager: HealthKitManaging = HealthKitManager.shared,
-        healthKitStorage: HealthKitStoring = HealthKitStorage.shared
+        healthKitStorage: HealthKitStoring = HealthKitStorage.shared,
+        insightsEngine: InsightsEngine? = nil
     ) {
         self.healthKitManager = healthKitManager
         self.healthKitStorage = healthKitStorage
-        #if targetEnvironment(simulator)
-        workouts = RunWorkout.mockShowWorkouts
-        #else
-        workouts = healthKitStorage.getAll()
-        #endif
+        self.insightsEngine = insightsEngine ?? InsightsEngine()
     }
     
     func fetchWorkouts() async {
@@ -79,6 +78,10 @@ class ContentViewModel {
         do {
             try await healthKitManager.requestAuthorization()
             workouts = try await healthKitManager.fetchRunWorkouts()
+            let didLoadCache = insightsEngine.loadCachedInsights(for: filteredWorkouts)
+            if !didLoadCache {
+                await insightsEngine.generateInsights(for: filteredWorkouts)
+            }
         } catch {
             print(error)
         }
@@ -127,5 +130,18 @@ class ContentViewModel {
     func clearCache() {
         healthKitStorage.clear()
         workouts = []
+        insightsEngine.clearCache()
+    }
+
+    var insightsText: String? {
+        insightsEngine.insightsText
+    }
+
+    var isGeneratingInsights: Bool {
+        insightsEngine.isGeneratingInsights
+    }
+
+    var shouldShowInsightsCard: Bool {
+        insightsEngine.isModelAvailable
     }
 }
