@@ -69,16 +69,8 @@ final class InsightsEngine {
 #endif
     }
 
-    func loadCachedInsights(for workouts: [RunWorkout]) -> Bool {
-        guard isModelAvailable, !workouts.isEmpty else {
-            insightsText = nil
-            return false
-        }
-        let signature = Self.signature(for: workouts)
-        guard
-            storage.getInsightsSignature() == signature,
-            let cached = storage.getInsightsText()
-        else {
+    func loadCachedInsights() -> Bool {
+        guard isModelAvailable, let cached = storage.getInsightsText() else {
             insightsText = nil
             return false
         }
@@ -92,20 +84,15 @@ final class InsightsEngine {
     }
 
     func generateInsights(for workouts: [RunWorkout]) async {
-        guard !workouts.isEmpty else {
+        guard isModelAvailable, !workouts.isEmpty else {
             insightsText = nil
             return
         }
-#if targetEnvironment(simulator)
-        return
-#endif
-        guard isModelAvailable else { return }
+        
+        isGeneratingInsights = true
 
-        let signature = Self.signature(for: workouts)
         let facts = makeFactsSnapshot(from: workouts)
         let prompt = buildPrompt(from: facts)
-
-        isGeneratingInsights = true
 
         guard let text = await generateText(from: prompt) else {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
@@ -117,7 +104,7 @@ final class InsightsEngine {
             insightsText = text
             isGeneratingInsights = false
         }
-        storage.cacheInsights(text: text, signature: signature)
+        storage.cacheInsights(text: text)
     }
 
     // MARK: - Prompting
@@ -390,12 +377,4 @@ final class InsightsEngine {
         numberFormatter.string(from: NSNumber(value: value)) ?? String(format: "%.1f", value)
     }
 
-    // MARK: - Signature
-
-    static func signature(for workouts: [RunWorkout]) -> String {
-        let parts = workouts.map { workout in
-            "\(workout.id.uuidString)|\(workout.dateInterval.start.timeIntervalSince1970)"
-        }
-        return parts.sorted().joined(separator: "||")
-    }
 }

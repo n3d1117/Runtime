@@ -11,9 +11,8 @@ protocol HealthKitStoring {
     func cacheWorkouts(_ workouts: [RunWorkout])
     func get(for id: UUID) -> RunWorkout?
     func getAll() -> [RunWorkout]
-    func cacheInsights(text: String, signature: String)
+    func cacheInsights(text: String)
     func getInsightsText() -> String?
-    func getInsightsSignature() -> String?
     func clearInsights()
     func clear()
 }
@@ -25,13 +24,11 @@ final class HealthKitStorage: HealthKitStoring {
     private let defaults: UserDefaults
     private let key = "cachedRunWorkouts"
     private let insightsTextKey = "cachedRunInsightsText"
-    private let insightsSignatureKey = "cachedRunInsightsSignature"
     private let queue = DispatchQueue(label: "com.ned.runtime.healthkitstorage", attributes: .concurrent)
 
     private var cachedWorkouts: [RunWorkout]
     private var cachedWorkoutsByID: [UUID: RunWorkout]
     private var cachedInsightsText: String?
-    private var cachedInsightsSignature: String?
 
     private init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -46,7 +43,6 @@ final class HealthKitStorage: HealthKitStoring {
             self.cachedWorkoutsByID = [:]
         }
         self.cachedInsightsText = defaults.string(forKey: insightsTextKey)
-        self.cachedInsightsSignature = defaults.string(forKey: insightsSignatureKey)
     }
 
     func cacheWorkouts(_ workouts: [RunWorkout]) {
@@ -69,12 +65,10 @@ final class HealthKitStorage: HealthKitStoring {
         }
     }
 
-    func cacheInsights(text: String, signature: String) {
+    func cacheInsights(text: String) {
         queue.sync(flags: .barrier) {
             cachedInsightsText = text
-            cachedInsightsSignature = signature
             defaults.set(text, forKey: insightsTextKey)
-            defaults.set(signature, forKey: insightsSignatureKey)
         }
     }
 
@@ -84,18 +78,10 @@ final class HealthKitStorage: HealthKitStoring {
         }
     }
 
-    func getInsightsSignature() -> String? {
-        queue.sync {
-            cachedInsightsSignature
-        }
-    }
-
     func clearInsights() {
         queue.sync(flags: .barrier) {
             cachedInsightsText = nil
-            cachedInsightsSignature = nil
             defaults.removeObject(forKey: insightsTextKey)
-            defaults.removeObject(forKey: insightsSignatureKey)
         }
     }
 
@@ -105,9 +91,7 @@ final class HealthKitStorage: HealthKitStoring {
             cachedWorkoutsByID = [:]
             defaults.removeObject(forKey: key)
             cachedInsightsText = nil
-            cachedInsightsSignature = nil
             defaults.removeObject(forKey: insightsTextKey)
-            defaults.removeObject(forKey: insightsSignatureKey)
         }
     }
 

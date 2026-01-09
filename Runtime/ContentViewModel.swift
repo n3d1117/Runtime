@@ -67,6 +67,14 @@ class ContentViewModel {
         self.healthKitManager = healthKitManager
         self.healthKitStorage = healthKitStorage
         self.insightsEngine = insightsEngine ?? InsightsEngine()
+        
+        #if targetEnvironment(simulator)
+        workouts = RunWorkout.mockShowWorkouts
+        #else
+        workouts = healthKitStorage.getAll()
+        #endif
+
+        _ = self.insightsEngine.loadCachedInsights()
     }
     
     func fetchWorkouts() async {
@@ -77,9 +85,9 @@ class ContentViewModel {
 
         do {
             try await healthKitManager.requestAuthorization()
-            workouts = try await healthKitManager.fetchRunWorkouts()
-            let didLoadCache = insightsEngine.loadCachedInsights(for: filteredWorkouts)
-            if !didLoadCache {
+            let fetchedWorkouts = try await healthKitManager.fetchRunWorkouts()
+            if fetchedWorkouts != workouts {
+                workouts = fetchedWorkouts
                 await insightsEngine.generateInsights(for: filteredWorkouts)
             }
         } catch {
