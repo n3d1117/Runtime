@@ -5,11 +5,18 @@
 //  Created by ned on 02/02/25.
 //
 
+import Foundation
 import Observation
 
 @MainActor
 @Observable
 class ContentViewModel {
+
+    private enum DefaultsKey {
+        static let filterOptions = "ContentViewModel.filterOptions"
+    }
+
+    private static let defaultFilterOptions: Set<FiterOption> = [.hidePartialSplits, .fiveK]
     
     enum SortOption: String, CaseIterable {
         case recent
@@ -51,22 +58,29 @@ class ContentViewModel {
     var sortOption: SortOption = .recent {
         didSet { sortAndFilter() }
     }
-    private(set) var filterOptions: Set<FiterOption> = [.hidePartialSplits, .fiveK] {
-        didSet { sortAndFilter() }
+    private(set) var filterOptions: Set<FiterOption> = defaultFilterOptions {
+        didSet {
+            sortAndFilter()
+            persistFilterOptions()
+        }
     }
     
     private let healthKitManager: HealthKitManaging
     private let healthKitStorage: HealthKitStoring
     private let insightsEngine: InsightsEngine
+    private let userDefaults: UserDefaults
     
     init(
         healthKitManager: HealthKitManaging = HealthKitManager.shared,
         healthKitStorage: HealthKitStoring = HealthKitStorage.shared,
-        insightsEngine: InsightsEngine? = nil
+        insightsEngine: InsightsEngine? = nil,
+        userDefaults: UserDefaults = .standard
     ) {
         self.healthKitManager = healthKitManager
         self.healthKitStorage = healthKitStorage
         self.insightsEngine = insightsEngine ?? InsightsEngine()
+        self.userDefaults = userDefaults
+        self.filterOptions = Self.loadFilterOptions(from: userDefaults)
         
         #if targetEnvironment(simulator)
         workouts = RunWorkout.mockShowWorkouts
@@ -133,6 +147,18 @@ class ContentViewModel {
         }
         
         filteredWorkouts = finalWorkouts
+    }
+
+    private func persistFilterOptions() {
+        userDefaults.set(filterOptions.map(\.rawValue), forKey: DefaultsKey.filterOptions)
+    }
+
+    private static func loadFilterOptions(from userDefaults: UserDefaults) -> Set<FiterOption> {
+        guard let rawValues = userDefaults.array(forKey: DefaultsKey.filterOptions) as? [String] else {
+            return defaultFilterOptions
+        }
+
+        return Set(rawValues.compactMap(FiterOption.init(rawValue:)))
     }
     
     func clearCache() {
